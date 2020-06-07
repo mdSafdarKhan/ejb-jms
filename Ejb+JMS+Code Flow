@@ -1,0 +1,120 @@
+Ejb Server Side
+=================
+	@Stateless
+	@Resource(name = "loginDataSource")
+	@Resource(name = "lmsConnectionFactory", mappedName = "lms/lmsConnectionFactory")
+	@Resource(mappedName = "lms/lmsQueue")
+
+	javax.sql.DataSource
+	javax.jms.ConnectionFactory
+	javax.jms.Connection
+	javax.jms.Queue
+
+	applyLeave(String leaveAppliedBy, String leaveDate)
+		javax.jms.Session (Session.AUTO_ACKNOWLEDGE)
+		javax.jms.MessageProducer
+		javax.jms.ObjectMessage
+		MessageProducer.send(ObjectMessage)
+		
+	getLeaves()
+		javax.jms.Session (Session.AUTO_ACKNOWLEDGE)
+		javax.jms.QueueBrowser
+		javax.jms.Message
+		Message.getBody(Leave.class)
+		
+	@Local
+	
+	@Remote
+	
+Client Side
+=================
+	java:global/leave-management-system/Login!com.demo.service.login.LoginRemote
+	java:global/leave-management-system/LeaveService!com.demo.service.leave.LeaveServiceRemote
+
+	weblogic.jndi.WLInitialContextFactory
+	
+	t3://127.0.0.1:7001
+	t3://localhost:7001
+	
+	javax.naming.InitialContext
+		Context.INITIAL_CONTEXT_FACTORY
+		Context.PROVIDER_URL
+		
+	javax.naming.Context
+		ctx.lookup("java:global/leave-management-system/Login!com.demo.service.login.LoginRemote")
+		
+JMS
+====
+
+	1. Weblogic Server 
+	---------------------
+		ConnectionFactory
+			name = "lmsConnectionFactory"
+			mappedName = "lms/lmsConnectionFactory"
+		
+		Queue
+			name = "lmsQueue"
+			mappedName = "lms/lmsQueue"
+			
+	2. Ejb MDB
+	-------------
+		@MessageDriven(
+				activationConfig = { 
+						@ActivationConfigProperty(propertyName = "destinationName", propertyValue = "lms/lmsQueue"),
+						@ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue")}
+				, mappedName = "lms/lmsQueue")
+				
+		public class ConsumeMessage implements MessageListener {
+			
+			public void onMessage(Message message) {
+				try {
+					System.out.println(".Messsage Arrived: " + message.getBody(String.class));
+				} catch (JMSException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+	3. Client (Talks directly to Weblogic Server, not to  Ejb MDB)
+	-------------------------------------------------------------------
+			public class MessageService {
+		
+				@Resource(name = "lmsConnectionFactory", mappedName = "lms/lmsConnectionFactory")
+				private ConnectionFactory connectionFactory;
+				
+				@Resource(name = "lmsQueue", mappedName = "lms/lmsQueue")
+				Queue queue;
+
+				public void sendMessage(String messageBody) throws JMSException {
+					Connection connection = connectionFactory.createConnection();
+					
+					Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+					
+					MessageProducer messageProducer = session.createProducer(queue);
+					
+					TextMessage textMessage = session.createTextMessage(messageBody);
+					
+					messageProducer.send(textMessage);
+					
+					System.out.println(".Message sent to the server...");
+				}
+			}
+			
+Ejb Callback Methods
+==============
+
+	@PostConstruct
+	public void postConstruct() {
+		System.out.println("===================== ********************* =====================");
+		System.out.println("===================== Post Construct Called =====================");
+		System.out.println("===================== ********************* =====================");
+	}
+	
+	@PreDestroy
+	public void preDestroy() {
+		System.out.println("===================== ****************** =====================");
+		System.out.println("===================== Pre Destroy Called =====================");
+		System.out.println("===================== ****************** =====================");
+	}
+	
+	Note: They will only eecute when inialized once whether calling this class from client. If bean is not created then @PostConstruct will not execute and consequently @PreDestroy will never execute. Because if bean itself not inialized ever then how other thing will work?
