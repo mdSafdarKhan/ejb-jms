@@ -8,9 +8,13 @@ import java.util.HashMap;
 
 import javax.annotation.Resource;
 import javax.ejb.Stateless;
+import javax.interceptor.Interceptors;
 import javax.sql.DataSource;
 
+import com.demo.interceptors.LoginInterceptor;
+
 @Stateless
+@Interceptors(LoginInterceptor.class)
 public class Login implements LoginRemote, LoginLocal {
 
 	@Resource(name = "loginDataSource")

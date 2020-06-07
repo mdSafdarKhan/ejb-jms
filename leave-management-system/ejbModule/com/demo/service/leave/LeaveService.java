@@ -11,6 +11,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.ejb.Stateless;
+import javax.interceptor.Interceptors;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
@@ -23,9 +24,11 @@ import javax.jms.QueueBrowser;
 import javax.jms.Session;
 import javax.sql.DataSource;
 
+import com.demo.interceptors.LoginInterceptor;
 import com.demo.model.leave.Leave;
 
 @Stateless
+@Interceptors(LoginInterceptor.class)
 public class LeaveService implements LeaveServiceRemote, LeaveServiceLocal {
 
 	@Resource(name = "loginDataSource")
